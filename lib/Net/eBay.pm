@@ -414,7 +414,7 @@ sub submitRequestGetText {
     $xml = "
 <?xml version='1.0' encoding='utf-8'?>
  <$name"."Request xmlns=\"urn:ebay:apis:eBLBaseComponents\">\n";
-    if ($name ne 'GetSessionID') {
+    if ($name ne 'GetSessionID' and $name ne 'FetchToken') {
         $xml .= "<RequesterCredentials>\n";
         # if request credentials exist, use the username/password
         if (defined $request->{RequesterCredentials}) {
