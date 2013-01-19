@@ -21,7 +21,7 @@ BEGIN { $HAS_ZLIB = eval 'use Compress::Zlib (); 1;' }
 
 =head1 NAME
 
-Net::eBay - Perl Interface to XML based eBay API. 
+Net::eBay - Perl Interface to XML based eBay API.
 
 =head1 VERSION
 
@@ -73,7 +73,7 @@ eBay does not allow bidding via eBay API.
                               ApplicationKey => '...',
                               CertificateKey => '...',
                               Token => '...',
-                             } ); 
+                             } );
 
  my $result = $ebay->submitRequest( "AddItem",
                       {
@@ -238,11 +238,11 @@ sub new {
     close( F );
     $hash = $h;
   }
-  
+
   bless $hash, $type;
 
   $hash->{debug} = undef unless $hash->{debug};
-  
+
   $hash->{siteid} = 0 unless $hash->{siteid};
 
   $hash->{defaults} = {
@@ -251,14 +251,14 @@ sub new {
       timeout       => 50,
       retries       => 2,
   };
-  
+
   if ( ! $hash->{url} ) {
 
-      return undef unless verifyAndPrint( 
+      return undef unless verifyAndPrint(
           defined $hash->{SiteLevel} && $hash->{SiteLevel},
-          "SiteLevel must be defined" 
+          "SiteLevel must be defined"
       );
-      
+
       if( $hash->{SiteLevel} eq 'prod' ) {
         $hash->{url} = 'https://api.ebay.com/ws/api.dll';
         $hash->{public_url} = 'http://cgi.ebay.com/ws/eBayISAPI.dll';
@@ -269,16 +269,16 @@ sub new {
         return unless verifyAndPrint( 0, "Parameter SiteLevel is not defined or is wrong: '$hash->{SiteLevel}'" );
       }
   }
-  
+
   $hash->{siteid} = 0 unless $hash->{siteid};
-  
+
   return undef unless verifyAndPrint( $hash->{DeveloperKey}, "'DeveloperKey' field must be defined with eBay Developer key");
   return undef unless verifyAndPrint( $hash->{ApplicationKey}, "'ApplicationKey' field must be defined with eBay application key");
   return undef unless verifyAndPrint( $hash->{CertificateKey}, "'CertificateKey' field must be defined with eBay certificate key");
-  return undef unless verifyAndPrint( $hash->{Token}, "'Token' field must be defined with eBay token");
+#  return undef unless verifyAndPrint( $hash->{Token}, "'Token' field must be defined with eBay token");
 
   $hash->{SessionCertificate} = "$hash->{DeveloperKey};$hash->{ApplicationKey};$hash->{CertificateKey}";
-  
+
   return $hash;
 }
 
@@ -331,7 +331,7 @@ sub setDefaults {
   $this->{defaults}->{timeout} = $defaults->{timeout} if defined $defaults->{timeout};
   $this->{defaults}->{retries} = $defaults->{retries}
     if defined $defaults->{retries};
-  #print STDERR "Compatibility set to 
+  #print STDERR "Compatibility set to
 }
 
 =head2 submitRequest
@@ -387,7 +387,7 @@ sub submitRequestGetText {
   $req->header( 'X-EBAY-API-CERT-NAME', $this->{CertificateKey} );
   $req->header( 'X-EBAY-API-APP-NAME', $this->{ApplicationKey} );
   $req->header( 'Content-Type', 'text/xml' );
-  $req->header( 'X-EBAY-API-SESSION-CERTIFICATE', $this->{SessionCertificate} ); 
+  $req->header( 'X-EBAY-API-SESSION-CERTIFICATE', $this->{SessionCertificate} );
 
   # request compressed responses (if we can handle them)
   $req->header( 'Accept-Encoding', 'gzip' ) if $HAS_ZLIB;
@@ -398,46 +398,47 @@ sub submitRequestGetText {
     $req->header( 'X-EBAY-API-CALL-NAME', $name );
 
     $request->{Verb} = $name unless $request->{Verb};
-    
+
     $xml = "<?xml version='1.0' encoding='UTF-8'?>
 <request>
     <RequestToken>" . $this->{Token} . "</RequestToken>\n";
 
     $xml .= hash2xml( 2, $request );
-    
+
     $xml .= "</request>\n\n";
-    
+
   } elsif( $this->{defaults}->{API} == 2 ) {
     $req->header( 'X-EBAY-API-COMPATIBILITY-LEVEL', $this->{defaults}->{compatibility} );
     $req->header( 'X-EBAY-API-CALL_NAME', $name );
 
     $xml = "
 <?xml version='1.0' encoding='utf-8'?>
- <$name"."Request xmlns=\"urn:ebay:apis:eBLBaseComponents\">
- <RequesterCredentials>\n";
- #if request credentials exist, use the username/password
- if(defined $request->{RequesterCredentials}) { 
-   
-   #if username or password is not defined, we can't use request credentials
-   if(not defined $request->{RequesterCredentials}{Username} or
-      not defined $request->{RequesterCredentials}{Password}) {
-     croak "Username or Password missing when using RequesterCredentials\n";
-   }
-   
-   #add to the request header
-   $xml .= "  <Username>$request->{RequesterCredentials}{Username}</Username>\n" .
-           "  <Password>$request->{RequesterCredentials}{Password}</Password>\n";
+ <$name"."Request xmlns=\"urn:ebay:apis:eBLBaseComponents\">\n";
+    if ($name ne 'GetSessionID') {
+        $xml .= "<RequesterCredentials>\n";
+        # if request credentials exist, use the username/password
+        if (defined $request->{RequesterCredentials}) {
 
-   #delete from our request beceause we don't actually want to include a request credentials
-   #node within our api call
-   delete $request->{RequesterCredentials};
+           #if username or password is not defined, we can't use request credentials
+           if(not defined $request->{RequesterCredentials}{Username} or
+              not defined $request->{RequesterCredentials}{Password}) {
+             croak "Username or Password missing when using RequesterCredentials\n";
+           }
 
- } else {
-   $xml .= "  <eBayAuthToken>$this->{Token}</eBayAuthToken>\n";
- }
- 
- $xml .= "</RequesterCredentials>
-" . hash2xml( 2, $request ) . "
+           #add to the request header
+           $xml .= "  <Username>$request->{RequesterCredentials}{Username}</Username>\n" .
+                   "  <Password>$request->{RequesterCredentials}{Password}</Password>\n";
+
+           #delete from our request beceause we don't actually want to include a request credentials
+           #node within our api call
+           delete $request->{RequesterCredentials};
+
+        } elsif ($this->{Token}) {
+           $xml .= "  <eBayAuthToken>$this->{Token}</eBayAuthToken>\n";
+        }
+        $xml .= "</RequesterCredentials>";
+    }
+    $xml .= hash2xml( 2, $request ) . "
 </$name"."Request>
 ";
 
@@ -471,7 +472,7 @@ sub submitRequestGetText {
     warn "Net::eBay: error making request $name ($error_msg).\n";
     return undef;
   }
-  
+
   if( $this->{debug} ) {
     warn "Content (debug of Net::eBay): " . $res->content . "\n";
   }
@@ -482,9 +483,9 @@ sub submitRequestGetText {
 sub submitRequest {
 
   my ($this) = @_;
-  
+
   my $content = submitRequestGetText( @_ );
-  
+
   $@ = "";
   my $result = undef;
   eval {
@@ -493,9 +494,9 @@ sub submitRequest {
   };
 
   $this->{_last_text} = $content;
-  
+
   return $result if $result;
-  
+
   warn "Error parsing XML ($@). REF(content) = " . ref( $content ) . " CONTENT=$content\n";
   return $content;
 }
@@ -574,7 +575,7 @@ sub hash2xml {
   my ($depth, $request, $optionalKey) = @_;
 
   my $r = ref $request;
-  
+
   unless( ref $request ) {
     my $data = $request;
     #$data =~ s/\</\&lt\;/g;
@@ -583,7 +584,7 @@ sub hash2xml {
   }
 
   my $xml;
-  
+
   if( $r =~ /HASH/ ) {
     if( defined $request->{_value} && defined $request->{_attributes} ) {
       $xml = "<$optionalKey ";
@@ -617,7 +618,7 @@ sub hash2xml {
       $xml .= hash2xml( $depth+2, { $optionalKey => $item }, $optionalKey );
     }
   }
-  
+
   return $xml;
 }
 
